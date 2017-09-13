@@ -714,7 +714,9 @@ if [[ ${EXISTS_DEPLOY_HEKETI} -eq 1 ]] && [[ ${EXISTS_HEKETI} -eq 0 ]]; then
     heketi_service=$(${CLI} describe routes/deploy-heketi | grep "Requested Host:" | awk '{print $3}')
   fi
 
-  hello=$(curl "http://${heketi_service}/hello" 2>/dev/null)
+  heketi_pod=$(${CLI} get pod --no-headers --show-all --selector="deploy-heketi" 2>&1 | awk '{print $1}')
+
+  hello=$(${CLI} exec -it ${heketi_pod} -- curl "http://${heketi_service}/hello" 2>/dev/null)
   if [[ "${hello}" != "Hello from Heketi" ]]; then
     output "Failed to communicate with deploy-heketi service."
     if [[ "${CLI}" == *oc\ * ]]; then
@@ -725,7 +727,6 @@ if [[ ${EXISTS_DEPLOY_HEKETI} -eq 1 ]] && [[ ${EXISTS_HEKETI} -eq 0 ]]; then
     debug "OK"
   fi
 
-  heketi_pod=$(${CLI} get pod --no-headers --show-all --selector="deploy-heketi" 2>&1 | awk '{print $1}')
   heketi_cli="${CLI} exec -it ${heketi_pod} -- heketi-cli -s http://localhost:8080 --user admin --secret '${ADMIN_KEY}'"
 
   load_temp=$(mktemp)
@@ -802,14 +803,18 @@ while [[ "x${heketi_service}" == "x" ]] || [[ "${heketi_service}" == "<none>" ]]
   fi
   sleep 1
   ((s+=1))
-  heketi_service=$(${CLI} describe svc/heketi | grep "Endpoints:" | awk '{print $2}')
+  heketi_service=$(${CLI} get svc/heketi -o=jsonpath='{.status.loadBalancer.ingress[0].ip}:{.spec.ports[?(@.name == "heketi")].port}')
+  if [[ "x${heketi_service}" == "x" ]] || [[ ! ${heketi_service} =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:[0-9]{1,4}$ ]]; then
+    heketi_service=$(${CLI} describe svc/heketi | grep "Endpoints:" | awk '{print $2}')
+  fi
 done
 
 if [[ "${CLI}" == *oc\ * ]]; then
   heketi_service=$(${CLI} describe routes/heketi | grep "Requested Host:" | awk '{print $3}')
 fi
 
-hello=$(curl "http://${heketi_service}/hello" 2>/dev/null)
+heketi_pod=$(${CLI} get pod --no-headers --show-all --selector="heketi=pod" 2>&1 | awk '{print $1}')
+hello=$(${CLI} exec -it ${heketi_pod} -- curl "http://${heketi_service}/hello" 2>/dev/null)
 if [[ "${hello}" != "Hello from Heketi" ]]; then
   output "Failed to communicate with heketi service."
   if [[ "${CLI}" == *oc\ * ]]; then
