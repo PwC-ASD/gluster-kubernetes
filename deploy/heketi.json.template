@@ -34,5 +34,5 @@
 		}
 	},
 
-	"backup_db_to_kube_secret": false
+	"backup_db_to_kube_secret": true
 }
