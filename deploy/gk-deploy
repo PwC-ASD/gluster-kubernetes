@@ -318,7 +318,7 @@ check() {
           ;;
           *)
           status=$(echo "${line}" | awk '{print $2}')
-          if [[ "${status}" != "1/1" ]]; then
+          if [[ "${status}" != "1/1" && "${status}" != "2/2" ]]; then
             rc=1
           fi
           ;;
@@ -823,6 +823,41 @@ if [[ "${hello}" != "Hello from Heketi" ]]; then
   exit 1
 else
   debug "OK"
+
+  # Enable snapshot auto delete feature
+  output -n "Enabling snapshot 'auto-delete' feature ... "
+  gluster_pod=$(eval "${CLI} get pod --selector glusterfs=pod -o=jsonpath='{.items[0].metadata.name}'")
+  eval "${CLI} exec -ti $gluster_pod -c glusterfs gluster snapshot config | grep 'auto-delete : enable' > /dev/null 2>&1"
+  if [[ ${?} != 0 ]]; then
+    eval "${CLI} exec -ti $gluster_pod -c glusterfs gluster snapshot config 'auto-delete' enable > /dev/null 2>&1"
+    if [[ ${?} != 0 ]]; then
+      output "Failed"
+      output "Error enabling snapshot 'auto-delete' feature."
+      exit 1
+    else
+      output "OK"
+    fi
+  else
+    output "OK (already enabled)"
+  fi
+
+  # Create gluster_shared_storage system volume to handle it from heketi (usefull when migrating/removing gluster nodes)
+  output -n "Provisioning gluster_shared_storage system volume ... "
+  heketi_cli="${CLI} exec -it ${heketi_pod} -- heketi-cli -s http://localhost:8080 --user admin --secret '${ADMIN_KEY}'"
+  eval "${heketi_cli} volume list | grep gluster_shared_storage > /dev/null 2>&1"
+  if [[ ${?} != 0 ]]; then
+    eval "${heketi_cli} volume create --name gluster_shared_storage --size 2 --durability replicate --replica 3 > /dev/null 2>&1"
+    if [[ ${?} != 0 ]]; then
+      output "Failed"
+      output "Error provisioning gluster_shared_storage system volume."
+      exit 1
+    else
+      output "OK"
+    fi
+  else
+    output "OK (already exists)"
+  fi
+
   output "
 heketi is now running and accessible via http://${heketi_service} . To run
 administrative commands you can install 'heketi-cli' and use it as follows:
