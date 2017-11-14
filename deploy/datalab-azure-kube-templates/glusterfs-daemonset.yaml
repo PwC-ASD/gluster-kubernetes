@@ -9,6 +9,10 @@ metadata:
     description: GlusterFS DaemonSet
     tags: glusterfs
 spec:
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 10%
   template:
     metadata:
       name: glusterfs
