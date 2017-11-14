@@ -24,7 +24,7 @@ spec:
         storagenode: glusterfs
       hostNetwork: true
       containers:
-      - image: gluster/gluster-centos:latest
+      - image: gluster/gluster-centos:gluster3u9_centos7
         imagePullPolicy: IfNotPresent
         name: glusterfs
         volumeMounts:
@@ -75,7 +75,7 @@ spec:
           periodSeconds: 25
           successThreshold: 1
           failureThreshold: 15
-      - image: gluster/gluster-centos:latest
+      - image: gluster/gluster-centos:gluster3u9_centos7
         imagePullPolicy: IfNotPresent
         name: glusterfs-snapshot-scheduler
         command: ["/bin/sh"]
@@ -194,3 +194,4 @@ data:
       && snap_scheduler.py status > /dev/null; code=$?; [[ $code == 0 || $code == 5 ]] \
       || (! gluster volume list | grep gluster_shared_storage > /dev/null \
       && ! pgrep --pidfile /run/crond.pid > /dev/null 2>&1)
+
