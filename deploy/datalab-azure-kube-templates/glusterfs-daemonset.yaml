@@ -24,7 +24,7 @@ spec:
         storagenode: glusterfs
       hostNetwork: true
       containers:
-      - image: gluster/gluster-centos:gluster3u9_centos7
+      - image: cnero/gluster-centos:3.10.7
         imagePullPolicy: IfNotPresent
         name: glusterfs
         volumeMounts:
@@ -75,7 +75,7 @@ spec:
           periodSeconds: 25
           successThreshold: 1
           failureThreshold: 15
-      - image: gluster/gluster-centos:gluster3u9_centos7
+      - image: cnero/gluster-centos:3.10.7
         imagePullPolicy: IfNotPresent
         name: glusterfs-snapshot-scheduler
         command: ["/bin/sh"]
